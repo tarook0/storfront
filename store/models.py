@@ -67,7 +67,7 @@ class OrderItem(models.Model):
 
 
 class Cart(models.Model):
-    created_at = models.DateTimeField(auto_now_add=True)
+    created_at = models.DateTimeField(auto_now_add=True,)
 
 
 class CartItem(models.Model):
