@@ -3,6 +3,9 @@ from typing import Any, Counter
 from django.contrib import admin, messages
 from django.db.models.query import QuerySet
 from django.db.models import Count
+
+
+from tags.models import TaggedItem
 from . import models
 
 
@@ -23,6 +26,11 @@ class InventoryFilter(admin.SimpleListFilter):
 
 @admin.register(models.Product)
 class ProductAdmin(admin.ModelAdmin):
+    autocomplete_fields=['collection']
+    # inlines=[TagInline]
+    prepopulated_fields={
+        'slug':['title']
+    }
     actions = ['clear_inventory']
     list_display = ['title', 'unit_price',
                     'invenory_status', 'collection_title']
@@ -30,6 +38,7 @@ class ProductAdmin(admin.ModelAdmin):
     list_editable = ['unit_price']
     list_per_page = 10
     list_select_related = ['collection']
+    search_fields = ['title','quantity','unit_price']
 
     def collection_title(self, product):
         return product.collection.title
@@ -51,7 +60,7 @@ class ProductAdmin(admin.ModelAdmin):
 @ admin.register(models.Collection)
 class CollectionAdmin(admin.ModelAdmin):
     list_display = ['title', 'products_count']
-
+    search_fields=['title']
     @ admin.display(ordering='products_count')
     def products_count(self, collection):
         return collection.products_count
@@ -72,9 +81,13 @@ class CustomerAdmin(admin.ModelAdmin):
     ordering = ['first_name', 'last_name']
     search_fields = ['first_name__istartswith', 'last_name__istartswith']
 
-
+class OrderItemline(admin.TabularInline):
+    autocomplete_fields=['product']
+    model=models.OrderItem
+    extra=0
 @ admin.register(models.Order)
 class OrderAdmin(admin.ModelAdmin):
     list_display = ['id', 'placed_at', 'customer']
-
+    inlines=[OrderItemline]
+    autocomplete_fields=['customer']
 # Register your models here.

@@ -43,6 +43,7 @@ INSTALLED_APPS = [
     "debug_toolbar",
     'playground',
     'store',
+    'stroe_custom',
     'tags',
     'likes',
     'django_seed',
