@@ -2,11 +2,12 @@ from django.shortcuts import get_object_or_404
 from django.db.models.aggregates import Count
 from django.http import HttpResponse
 from rest_framework.decorators import api_view
-from rest_framework.generics import ListCreateAPIView, RetrieveUpdateDestroyAPIView
+# from rest_framework.generics import ListCreateAPIView, RetrieveUpdateDestroyAPIView
 from rest_framework.viewsets import ModelViewSet
-from rest_framework.mixins import ListModelMixin, CreateModelMixin
+# from rest_framework.mixins import ListModelMixin, CreateModelMixin
 from rest_framework.response import Response
-from rest_framework.views import APIView
+# from rest_framework.views import APIView
+from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import status
 from .models import OrderItem, Product, Collection, Review
 from .serializers import ProductSerializer, CollectionSerializer, ReviewSeializer
@@ -14,8 +15,18 @@ from .serializers import ProductSerializer, CollectionSerializer, ReviewSeialize
 
 
 class ProductViewSet(ModelViewSet):
-    queryset = Product.objects.all()
+    queryset=Product.objects.all()
     serializer_class = ProductSerializer
+    filter_backends=[DjangoFilterBackend]
+    filterset_fields=['collection_id']
+
+    # def get_queryset(self):
+    #     queryset = Product.objects.all()
+    #     collection_id = self.request.query_params.get('collection_id')
+    #     if collection_id is not None:
+    #         queryset = queryset.filter(collection_id=collection_id)
+    #     return queryset
+
 
     def get_serializer_context(self):
         return {'request': self.request}
@@ -38,12 +49,15 @@ class CollectionViewSet(ModelViewSet):
             return Response({'error': 'Collection can not be deleted because it is inclu one or more product '}, status=status.HTTP_405_METHOD_NOT_ALLOWED)
         collection.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
+
+
 class ReviewViewSet(ModelViewSet):
-    
+
     def get_queryset(self):
-        queryset =Review.objects.filter(product_id=self.kwargs['product_pk'])
-        queryset = queryset # TODO
+        queryset = Review.objects.filter(product_id=self.kwargs['product_pk'])
+        queryset = queryset  # TODO
         return queryset
-    serializer_class=ReviewSeializer
+    serializer_class = ReviewSeializer
+
     def get_serializer_context(self):
-        return {'product_id':self.kwargs['product_pk']}
+        return {'product_id': self.kwargs['product_pk']}
