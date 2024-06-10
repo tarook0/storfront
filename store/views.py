@@ -39,5 +39,11 @@ class CollectionViewSet(ModelViewSet):
         collection.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
 class ReviewViewSet(ModelViewSet):
-    queryset=Review.objects.all()
+    
+    def get_queryset(self):
+        queryset =Review.objects.filter(product_id=self.kwargs['product_pk'])
+        queryset = queryset # TODO
+        return queryset
     serializer_class=ReviewSeializer
+    def get_serializer_context(self):
+        return {'product_id':self.kwargs['product_pk']}
