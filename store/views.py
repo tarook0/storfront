@@ -1,17 +1,14 @@
 from django.shortcuts import get_object_or_404
 from django.db.models.aggregates import Count
-from django.http import HttpResponse
-from rest_framework.decorators import api_view
-# from rest_framework.generics import ListCreateAPIView, RetrieveUpdateDestroyAPIView
-from rest_framework.viewsets import ModelViewSet
-# from rest_framework.mixins import ListModelMixin, CreateModelMixin
-from rest_framework.response import Response
-# from rest_framework.views import APIView
 from django_filters.rest_framework import DjangoFilterBackend
-from rest_framework.filters import SearchFilter,OrderingFilter
+from rest_framework.viewsets import ModelViewSet
+from rest_framework.response import Response
+from rest_framework.filters import SearchFilter, OrderingFilter
 from rest_framework import status
+from rest_framework.pagination import PageNumberPagination
 
-from store.filter import ProductFilter
+from store.pagination import DefaultPagination
+from .filter import ProductFilter
 from .models import OrderItem, Product, Collection, Review
 from .serializers import ProductSerializer, CollectionSerializer, ReviewSeializer
 # Create your views here.
@@ -20,9 +17,11 @@ from .serializers import ProductSerializer, CollectionSerializer, ReviewSeialize
 class ProductViewSet(ModelViewSet):
     queryset = Product.objects.all()
     serializer_class = ProductSerializer
-    filter_backends = [DjangoFilterBackend, SearchFilter,OrderingFilter]
+    filter_backends = [DjangoFilterBackend, SearchFilter,
+                       OrderingFilter]
+    pagination_class=DefaultPagination
     search_fields = ['title', 'description']
-    ordering_fields=['unit_price','last_update']
+    ordering_fields = ['unit_price', 'last_update']
     filterset_class = ProductFilter
     # filterset_fields=['collection_id','unit_price']
 
