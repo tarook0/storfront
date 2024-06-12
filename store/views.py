@@ -2,15 +2,15 @@ from django.shortcuts import get_object_or_404
 from django.db.models.aggregates import Count
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework.viewsets import ModelViewSet, GenericViewSet
-from rest_framework.mixins import CreateModelMixin, RetrieveModelMixin, DestroyModelMixin
+from rest_framework.mixins import CreateModelMixin, RetrieveModelMixin, DestroyModelMixin, UpdateModelMixin
 from rest_framework.response import Response
 from rest_framework.filters import SearchFilter, OrderingFilter
 from rest_framework import status
 
 from store.pagination import DefaultPagination
 from .filter import ProductFilter
-from .models import Cart, CartItem, OrderItem, Product, Collection, Review
-from .serializers import AddCartItemSerializer, CartItemSerializer, CartSeializer, ProductSerializer, CollectionSerializer, ReviewSeializer, UpdatCartItemSerilaizer
+from .models import Cart, CartItem, Customer, OrderItem, Product, Collection, Review
+from .serializers import AddCartItemSerializer, CartItemSerializer, CartSeializer, CustomerSerializers, ProductSerializer, CollectionSerializer, ReviewSeializer, UpdatCartItemSerilaizer
 # Create your views here.
 
 
@@ -73,11 +73,12 @@ class CartViewset(DestroyModelMixin, RetrieveModelMixin, CreateModelMixin, Gener
 
 
 class CartItemViewset(ModelViewSet):
-    http_method_names=['get','post','patch','delete']
+    http_method_names = ['get', 'post', 'patch', 'delete']
+
     def get_serializer_class(self):
         if self.request.method == 'POST':
             return AddCartItemSerializer
-        elif self.request.method=='PATCH':
+        elif self.request.method == 'PATCH':
             return UpdatCartItemSerilaizer
         return CartItemSerializer
 
@@ -86,3 +87,9 @@ class CartItemViewset(ModelViewSet):
 
     def get_queryset(self):
         return CartItem.objects.filter(cart_id=self.kwargs['cart_pk']).select_related('product')
+
+
+class CustomerViewSet(CreateModelMixin, RetrieveModelMixin, UpdateModelMixin, GenericViewSet):
+    queryset=Customer.objects.all()
+    serializer_class=CustomerSerializers
+    
