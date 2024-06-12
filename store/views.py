@@ -2,12 +2,15 @@ from django.shortcuts import get_object_or_404
 from django.db.models.aggregates import Count
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework.viewsets import ModelViewSet, GenericViewSet
+from rest_framework.decorators import action
+from rest_framework.permissions import IsAuthenticated, AllowAny, IsAdminUser, DjangoModelPermissions
 from rest_framework.mixins import CreateModelMixin, RetrieveModelMixin, DestroyModelMixin, UpdateModelMixin
 from rest_framework.response import Response
 from rest_framework.filters import SearchFilter, OrderingFilter
 from rest_framework import status
 
 from store.pagination import DefaultPagination
+from store.permissions import FullDjangoModelPermission, IsAdminOrReadOnly, ViewCustomerHistoryPermission
 from .filter import ProductFilter
 from .models import Cart, CartItem, Customer, OrderItem, Product, Collection, Review
 from .serializers import AddCartItemSerializer, CartItemSerializer, CartSeializer, CustomerSerializers, ProductSerializer, CollectionSerializer, ReviewSeializer, UpdatCartItemSerilaizer
@@ -20,6 +23,7 @@ class ProductViewSet(ModelViewSet):
     filter_backends = [DjangoFilterBackend, SearchFilter,
                        OrderingFilter]
     pagination_class = DefaultPagination
+    permission_classes = [IsAdminOrReadOnly]
     search_fields = ['title', 'description']
     ordering_fields = ['unit_price', 'last_update']
     filterset_class = ProductFilter
@@ -45,6 +49,7 @@ class CollectionViewSet(ModelViewSet):
     queryset = Collection.objects.annotate(
         products_count=Count('products')).all()
     serializer_class = CollectionSerializer
+    permission_classes = [IsAdminOrReadOnly]
 
     def delete(self, request, pk):
         collection = get_object_or_404(Collection.objects.annotate(
@@ -89,7 +94,29 @@ class CartItemViewset(ModelViewSet):
         return CartItem.objects.filter(cart_id=self.kwargs['cart_pk']).select_related('product')
 
 
-class CustomerViewSet(CreateModelMixin, RetrieveModelMixin, UpdateModelMixin, GenericViewSet):
-    queryset=Customer.objects.all()
-    serializer_class=CustomerSerializers
-    
+class CustomerViewSet(ModelViewSet):
+    queryset = Customer.objects.all()
+    serializer_class = CustomerSerializers
+    permission_classes = [IsAdminUser]
+
+    def get_permissions(self):
+        if self.request.method == 'GET':
+            return [AllowAny()]
+        return [IsAuthenticated()]
+
+    @action(detail=True,permission_classes=[ViewCustomerHistoryPermission])
+    def history(self, request, pk):
+        return Response('OK')
+
+    @action(detail=False, methods=['GET', 'PUT'], permission_classes=[IsAuthenticated])
+    def me(self, request):
+        (customer, created) = Customer.objects.get_or_create(
+            user_id=request.user.id)
+        if request.method == 'GET':
+            serializer = CustomerSerializers(customer)
+            Response(serializer.data)
+        elif request.method == 'PUT':
+            seializer = CustomerSerializers(customer, data=request.data)
+            serializer.is_valid(raise_exception=True)
+            serializer.save()
+            return Response(serializer.data)
