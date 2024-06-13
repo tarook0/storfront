@@ -13,7 +13,7 @@ from store.pagination import DefaultPagination
 from store.permissions import FullDjangoModelPermission, IsAdminOrReadOnly, ViewCustomerHistoryPermission
 from .filter import ProductFilter
 from .models import Cart, CartItem, Customer, Order, OrderItem, Product, Collection, Review
-from .serializers import AddCartItemSerializer, CartItemSerializer, CartSeializer, CustomerSerializers, OrderSerializer, ProductSerializer, CollectionSerializer, ReviewSeializer, UpdatCartItemSerilaizer
+from .serializers import AddCartItemSerializer, CartItemSerializer, CartSeializer, CreateOrderSerializer, CustomerSerializers, OrderSerializer, ProductSerializer, CollectionSerializer, ReviewSeializer, UpdatCartItemSerilaizer
 # Create your views here.
 
 
@@ -104,7 +104,7 @@ class CustomerViewSet(ModelViewSet):
             return [AllowAny()]
         return [IsAuthenticated()]
 
-    @action(detail=True,permission_classes=[ViewCustomerHistoryPermission])
+    @action(detail=True, permission_classes=[ViewCustomerHistoryPermission])
     def history(self, request, pk):
         return Response('OK')
 
@@ -120,7 +120,24 @@ class CustomerViewSet(ModelViewSet):
             serializer.is_valid(raise_exception=True)
             serializer.save()
             return Response(serializer.data)
+
+
 class OrderViewSet(ModelViewSet):
-    queryset=Order.objects.all()
-    serializer_class=OrderSerializer
-    
+    permission_classes = [IsAuthenticated]
+
+    def get_serializer_class(self):
+        if self.request.method == 'POST':
+            return CreateOrderSerializer
+        return OrderSerializer
+    # queryset=Order.objects.all()
+
+    def get_queryset(self):
+        user = self.request.user
+        if self.request.user.is_staff:
+            return Order.objects.all()
+        (customer_id, created) = Customer.objects.only(
+            'id').get_or_create(user_id=user.id)
+        return Order.objects.filter(customer_id=customer_id)
+
+    def get_serializer_context(self):
+        return {'user_id': self.user.id}
