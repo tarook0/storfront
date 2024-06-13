@@ -13,7 +13,7 @@ from store.pagination import DefaultPagination
 from store.permissions import FullDjangoModelPermission, IsAdminOrReadOnly, ViewCustomerHistoryPermission
 from .filter import ProductFilter
 from .models import Cart, CartItem, Customer, Order, OrderItem, Product, Collection, Review
-from .serializers import AddCartItemSerializer, CartItemSerializer, CartSeializer, CreateOrderSerializer, CustomerSerializers, OrderSerializer, ProductSerializer, CollectionSerializer, ReviewSeializer, UpdatCartItemSerilaizer
+from .serializers import AddCartItemSerializer, CartItemSerializer, CartSeializer, CreateOrderSerializer, CustomerSerializers, OrderSerializer, ProductSerializer, CollectionSerializer, ReviewSeializer, UpdatCartItemSerilaizer, UpdateorderSerializers
 # Create your views here.
 
 
@@ -123,13 +123,27 @@ class CustomerViewSet(ModelViewSet):
 
 
 class OrderViewSet(ModelViewSet):
-    permission_classes = [IsAuthenticated]
+    http_method_names=['get','head','patch','delete','head','options']
+    def get_permissions(self):
+        if self.request.method in [ 'PATCH', 'DELETE']:
+            return [IsAdminUser()]
+        return [IsAuthenticated()]
 
     def get_serializer_class(self):
         if self.request.method == 'POST':
             return CreateOrderSerializer
+        elif self.request.method=='PATCH':
+            return UpdateorderSerializers
         return OrderSerializer
     # queryset=Order.objects.all()
+
+    def create(self, request, *args, **kwargs):
+        serializer = CreateOrderSerializer(
+            data=request.data, context={'user_id': self.user.id})
+        serializer.validated_data(raise_exception=True)
+        order = serializer.save()
+        serializer = OrderSerializer(order=order)
+        return Response(serializer.data)
 
     def get_queryset(self):
         user = self.request.user
@@ -138,6 +152,3 @@ class OrderViewSet(ModelViewSet):
         (customer_id, created) = Customer.objects.only(
             'id').get_or_create(user_id=user.id)
         return Order.objects.filter(customer_id=customer_id)
-
-    def get_serializer_context(self):
-        return {'user_id': self.user.id}
